@@ -1,0 +1,73 @@
+yelp_train = pd.read_csv("yelp_data.csv",sep='\t\n', header = None, names = ['reviewText'], engine = 'python')
+yelp_train = pd.DataFrame(yelp_train['reviewText'].str.split('\t').tolist())
+yelp_train.columns = ["reviewID", "classLabel", "reviewText"]
+yelp_test = pd.read_csv("yelp_data.csv",sep='\t\n', header = None, names = ['reviewText'], engine = 'python')
+yelp_test = pd.DataFrame(yelp_test['reviewText'].str.split('\t').tolist())
+yelp_test.columns = ["reviewID", "classLabel", "reviewText"]
+#algo = sys.argv[3]
+
+#Convert to lowercase
+yelp_train['reviewText'] = yelp_train['reviewText'].str.lower()
+yelp_test['reviewText'] = yelp_test['reviewText'].str.lower()
+
+#Stripping punctuations
+yelp_train['reviewText'] = yelp_train['reviewText'].str.replace('[^\w\s]','')
+yelp_test['reviewText'] = yelp_test['reviewText'].str.replace('[^\w\s]','')
+
+#Splitting the words based on white spaces
+yelp_train['reviewText'] = yelp_train['reviewText'].str.split("\\s")
+yelp_test['reviewText'] = yelp_test['reviewText'].str.split("\\s")
+
+
+#Training Set
+reviewTrainText = []
+for row in yelp_train['reviewText']:
+    unique = set(row)
+    reviewTrainText.extend(unique)
+reviewTrainText = np.array(reviewTrainText)   
+reviewTrainText = reviewTrainText[(reviewTrainText!='')] 
+#Testing Set
+reviewTestText = []
+for row in yelp_test['reviewText']:
+    reviewTestText.extend(row)
+reviewTestText = np.array(reviewTestText)   
+reviewTestText = reviewTestText[(reviewTestText!='')]
+
+
+#Counting the frequency of unique words
+#Training Set
+reviewUniqueCount = collections.Counter(reviewTrainText)
+reviewUniqueCount = list(reviewUniqueCount.most_common())
+#Testing Set
+reviewUniqueCount = collections.Counter(reviewTrainText)
+reviewUniqueCount = list(reviewUniqueCount.most_common())
+
+#reindexing dataframe
+yelp_train.index = range(len(yelp_train))
+yelp_test.index = range(len(yelp_test))
+
+#1.(a) deleting the top 100 words and displaying the next 500 words
+del reviewUniqueCount[:100]
+top500 =  reviewUniqueCount[:1000]
+top500 = np.array([r[0] for r in top500])
+
+
+train = np.array(yelp_train)
+test = np.array(yelp_test)
+feature = np.empty((len(yelp_train),len(top500)), int)
+#a = np.array(yelp_train['reviewText'])
+for i in range(0,len(yelp_train)):
+    for j in range(0,len(top500)):
+        if top500[j] in train[i,2]:
+            feature[i][j] = 1
+        else:
+            feature[i][j] = 0
+
+
+test_feature = np.empty((len(yelp_test),len(top500)), int)
+for i in range(0,len(yelp_test)):
+        for j in range(0,len(top500)):
+            if top500[j] in test[i,2]:
+                test_feature[i][j] = 1
+            else:
+                test_feature[i][j] = 0
