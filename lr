@@ -1,0 +1,54 @@
+def Logistic_Regression(yelp_train, yelp_test):
+    lr_feature = np.array(feature)
+    empty = np.empty((len(yelp_train),1), int )*0+1
+    lr_feature = np.append(empty,lr_feature,1)
+    lr_feature = np.transpose(lr_feature)    
+    lr_feature_test = np.array(test_feature)
+    empty_test = np.empty((len(yelp_test),1), int )*0+1
+    lr_feature_test = np.append(empty_test,lr_feature_test,1)
+    lr_feature_test = np.transpose(lr_feature_test) 
+    lambda_lr = 0.01
+    step_size = 0.01
+    w = np.empty((1,len(top500)+1), int)
+    w = w*0.0
+    y_cap = np.empty((len(yelp_train),1), float)
+    y_cap = y_cap*0.0
+    y = np.empty((len(yelp_train),1), float)
+    y = y*0.0
+    for i in range(0,len(y)):
+        y[i] = yelp_train['classLabel'][i]
+    for k in range(0,100):
+        wtx = np.matmul(w,lr_feature)
+        for i in range(0,wtx.shape[1]):
+            y_cap[i] =  1/(1+float(math.exp(-wtx[0,i])))
+        yminusy_cap = np.subtract(y,y_cap)  
+        sumation = np.empty((1,w.shape[1]), int)
+        sumation = sumation*0.0  
+        for j in range(0,len(yelp_train)):
+            temp_sum = yminusy_cap[j]*lr_feature[:,j]
+            sumation = sumation+temp_sum
+        delta = sumation - (lambda_lr*w)
+        w_new = w + step_size*delta
+        if np.linalg.norm(np.array(w_new)-np.array(w)) == 1*math.exp(-6):
+            #print("If:", np.linalg.norm(np.array(w_new)-np.array(w)) == 1*math.exp(-6))
+            break
+        else:
+            w = w_new
+    prediction = np.empty((len(yelp_test),1), float ) 
+    for r in range(0,len(yelp_test)):
+        wtx_test = np.matmul(w,lr_feature_test)
+        for h in range(0,wtx_test.shape[1]):
+            prediction[h] =  1/(1+float(math.exp(-wtx_test[0,h])))       
+    for t in range(0,len(yelp_test)):  
+        if prediction[t]<0.5:
+            prediction[t] = 0
+        else:
+            prediction[t] = 1    
+    count = 0
+    for i in range(0,len(prediction)):
+        if float(yelp_test['classLabel'][i]) != prediction[i]:
+            count = count+1
+    
+    zeroOneError = count/len(yelp_test)
+    #return zeroOneError
+    print("ZERO-ONE-LOSS-LR ", zeroOneError) 
