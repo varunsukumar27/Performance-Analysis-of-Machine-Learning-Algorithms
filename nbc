@@ -1,0 +1,95 @@
+def NBC(yelp_train, yelp_test):
+    positiveReviews = 0
+    negativeReviews = 0
+    for rows in yelp_train['classLabel']:
+        if rows=='1':
+            positiveReviews = positiveReviews+1
+        else:
+            negativeReviews = negativeReviews+1
+    
+    p_positiveReviews = positiveReviews/len(yelp_train)
+    p_negativeReviews = negativeReviews/len(yelp_train)
+    
+    #Creating a matrix to store the counts of words in negative and positive reviews
+    probMatrix = np.empty((len(top500),2), int)
+    probMatrix = probMatrix*0
+    temp_reviewText = np.array(yelp_train['reviewText'])
+    temp_classLabel = np.array(yelp_train['classLabel'])
+    for i in range(0,len(top500)):
+        for j in range(0,len(yelp_train)):
+            if (top500[i] in temp_reviewText[j] and temp_classLabel[j]=='1'):
+                probMatrix[i][0]=probMatrix[i][0]+1
+            elif (top500[i] in temp_reviewText[j] and temp_classLabel[j]=='0'):
+                probMatrix[i][1]=probMatrix[i][1]+1
+    
+    #Creating the dataframe with the words and their respective counts in the pos
+    probabilities = pd.DataFrame(probMatrix, columns = ['Positive','Negative'])
+    probabilities['Word'] = pd.DataFrame(top500)
+    
+    
+    #Calculating the conditional probabilities for Positive reviews
+    probabilities['Positive_Prob']=0.0
+    temp_probabilities_pos =  np.empty((len(probabilities),1), float) 
+    temp_probabilities_pos = temp_probabilities_pos*0 
+    temp_positive = np.array(probabilities['Positive'])
+    for i in range(0,len(probabilities['Positive'])):
+        temp_probabilities_pos[i] = (temp_positive[i]+1)/(positiveReviews+2)
+    probabilities['Positive_Prob'] = temp_probabilities_pos
+    #Calculating the conditional probabilities for Negative reviews        
+    probabilities['Negative_Prob']=0.0
+    temp_probabilities_neg =  np.empty((len(probabilities),1), float) 
+    temp_probabilities_neg = temp_probabilities_neg*0 
+    temp_negative = np.array(probabilities['Negative'])           
+    for i in range(0,len(probabilities['Negative'])):
+        temp_probabilities_neg[i] = (temp_negative[i]+1)/(negativeReviews+2)
+    probabilities['Negative_Prob'] = temp_probabilities_neg                
+    
+    probabilities['Positive_Prob_notpres'] = 1-probabilities['Positive_Prob']
+    probabilities['Negative_Prob_notpres'] = 1-probabilities['Negative_Prob']
+  
+    n_pos_prob =  np.empty((len(yelp_test),1), float) 
+    n_pos_prob = n_pos_prob*0.0 + 1.0
+    d_neg_prob =  np.empty((len(yelp_test),1), float) 
+    d_neg_prob =  d_neg_prob*0.0  + 1.0
+    posProb_word = np.array(probabilities['Positive_Prob'])
+    negProb_word = np.array(probabilities['Negative_Prob'])
+    posProb_notword = np.array(probabilities['Positive_Prob_notpres'])
+    negProb_notword = np.array(probabilities['Negative_Prob_notpres'])
+    posneg =  np.empty((len(yelp_test),1), float) 
+    posneg = posneg*0.0 
+    for i in range(0,len(yelp_test)):
+        for j in range(0,len(top500)):
+            if test_feature[i][j] == 1:
+                n_pos_prob[i] = n_pos_prob[i]*posProb_word[j]
+                
+            else:
+                n_pos_prob[i] = n_pos_prob[i]*posProb_notword[j]
+                
+    
+    for i in range(0,len(yelp_test)):
+        for j in range(0,len(top500)):
+            if test_feature[i][j] == 1:
+                d_neg_prob[i] = d_neg_prob[i]*negProb_word[j]
+            else:
+                d_neg_prob[i] = d_neg_prob[i]*negProb_notword[j]
+                
+        n_pos_prob[i] = n_pos_prob[i]*p_positiveReviews
+        d_neg_prob[i] = d_neg_prob[i]*p_negativeReviews 
+    for i in range(0,len(yelp_test)):            
+        if n_pos_prob[i] > d_neg_prob[i]:
+            posneg[i] = 1
+                  
+                  
+        
+    prediction = pd.DataFrame(yelp_test['reviewText'], columns = ['Review'])
+    prediction['Actual'] = pd.DataFrame(yelp_test['classLabel']) 
+    prediction['Predicted'] = pd.DataFrame(posneg)
+    count = 0
+    
+    for i in range(0,len(prediction)):
+        if float(test[i,1]) != float(posneg[i]):
+            count = count+1
+    
+    zeroOneError = count/len(yelp_test)
+    #return zeroOneError
+    print("ZERO-ONE-LOSS ", zeroOneError)        
